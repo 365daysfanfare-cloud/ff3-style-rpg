@@ -27,7 +27,7 @@ const STAGES = [
 
 // ゲーム状態
 let gameState = {
-    screen: 'menu', // menu, characterCreation, game, saveLoad, gameover
+    screen: 'menu',
     party: [],
     currentStage: 0,
     currentEnemies: [],
@@ -125,6 +125,8 @@ function renderCharacterCreation(container) {
 
 function updateCharacterPreview(index) {
     const classSelect = document.getElementById(`class${index}`);
+    if (!classSelect) return;
+    
     const classIndex = parseInt(classSelect.value);
     const cls = CLASSES[classIndex];
     
@@ -134,7 +136,10 @@ function updateCharacterPreview(index) {
         <p>MAG: <span class="stat">${cls.mag}</span> | SPR: <span class="stat">${cls.spr}</span></p>
     `;
     
-    document.getElementById(`preview${index}`).innerHTML = html;
+    const preview = document.getElementById(`preview${index}`);
+    if (preview) {
+        preview.innerHTML = html;
+    }
 }
 
 // ゲーム画面
@@ -174,7 +179,9 @@ function renderGame(container) {
 
     let logHtml = '';
     gameState.battleLog.forEach(log => {
-        logHtml += `<div class="log-entry ${log.type}">${log.message}</div>`;
+        const logType = log.type || 'info';
+        const logMessage = log.message || log;
+        logHtml += `<div class="log-entry ${logType}">${logMessage}</div>`;
     });
 
     const html = `
@@ -213,7 +220,6 @@ function renderGame(container) {
 
 // セーブロード画面
 function renderSaveLoad(container) {
-    const isLoad = gameState.screen === 'saveLoad' && gameState.lastAction === 'load';
     const action = gameState.lastAction || 'save';
     
     let slotsHtml = '';
@@ -320,7 +326,12 @@ function startBattle() {
         spr: enemy.spr,
         sprite: enemy.sprite
     }));
-    gameState.battleLog = [`${stage.name}に入った！`, `敵が現れた：${gameState.currentEnemies.map(e => e.name).join('、')}`];
+    
+    // battleLog を正しいフォーマットで初期化
+    gameState.battleLog = [
+        { type: 'info', message: `${stage.name}に入った！` },
+        { type: 'info', message: `敵が現れた：${gameState.currentEnemies.map(e => e.name).join('、')}` }
+    ];
 }
 
 function playerAttack(charIndex) {
@@ -391,7 +402,7 @@ function playerDefend(charIndex) {
         type: 'player',
         message: `${char.name}は防御した！`
     });
-    char.def += 5; // 一時的に防御力UP
+    char.def += 5;
     enemyTurn();
     char.def -= 5;
     render();
@@ -416,7 +427,6 @@ function enemyTurn() {
         }
     });
 
-    // ゲームオーバー判定
     if (gameState.party.every(char => char.hp <= 0)) {
         gameState.screen = 'gameover';
         gameState.gameOverReason = 'パーティが全滅した...';
